@@ -7,15 +7,15 @@ class GPT(nn.Module):
     self.token_embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
     self.position_embedding = nn.Embedding(max_seq_len, embedding_dim)
 
-    def forward(self, idx):
-      B, T = idx.shape
+  def forward(self, idx):
+    B, T = idx.shape
 
-      tok_emb = self.token_embedding(idx) # (B, T, embedding_dim)
+    tok_emb = self.token_embedding(idx) # (B, T, embedding_dim)
+    
+    pos = torch.arange(0, T, device=idx.device)
 
-      pos = torch.arange(0, T, device=idx.device)
+    pos_emb = self.position_embedding(pos) # (T, embedding_dim)
 
-      pos_emb = self.postion_embedding(pos) # (T, embedding_dim)
+    x = tok_emb + pos_emb
 
-      x = tok_emb + pos_emb
-
-      return x
+    return x
