@@ -11,11 +11,8 @@ class GPT(nn.Module):
     B, T = idx.shape
 
     tok_emb = self.token_embedding(idx) # (B, T, embedding_dim)
-    
     pos = torch.arange(0, T, device=idx.device)
-
     pos_emb = self.position_embedding(pos) # (T, embedding_dim)
-
     x = tok_emb + pos_emb
 
     return x

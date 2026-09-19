@@ -17,7 +17,7 @@ class StoryDataset(torch.utils.data.Dataset):
   def __init__(self, processed_file_path, max_seq_len):
     self.all_tokens = np.memmap(processed_file_path, dtype=np.uint16, mode='r')
     self.max_seq_len = max_seq_len
-  
+
   def __len__(self):
     return self.all_tokens.shape[0] - self.max_seq_len
 
@@ -51,6 +51,8 @@ def prepare_data():
         batch_array.tofile(f)
         batch_tokens=[]
 
+    print(len(batch_tokens))
+
     if len(batch_tokens) > 0:
         batch_array = np.array(batch_tokens, dtype=np.uint16)
         batch_array.tofile(f)
@@ -60,12 +62,16 @@ def prepare_data():
 
 
 if __name__ == "__main__":
-  prepare_data()
+
+  if not os.path.exists(PROCESSED_FILE_PATH):
+    prepare_data()
+
   memmap_test = np.memmap(PROCESSED_FILE_PATH, dtype=np.uint16, mode='r')
   print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
+
   my_dataset = StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_seq_len=MAX_SEQ_LEN)
 
-  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=True)
+  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
 
   x, y = next(iter(dataloader))
   print(f"X: {x.shape}")

@@ -2,3 +2,5 @@ torch
 tiktoken
 numpy
 tqdm
+datasets
+python-dotenv
