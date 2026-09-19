@@ -1,16 +1,21 @@
 from typing import Any, cast
-
 import tiktoken
 import torch
 from datasets import Dataset, load_dataset
+from dotenv import load_dotenv
+import os
+from tqdm import tqdm
+import numpy as np
 
-CACHE_DIR = "/home/kamil/Projects/GPT/data/raw"
-MAX_SEQ_LEN = 256
+load_dotenv()
 
+CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
+MAX_SEQ_LEN = int(os.getenv("MAX_SEQ_LEN", "256"))
+PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, "tinystories_tokens.bin")
 
 class StoryDataset(torch.utils.data.Dataset):
-  def __init__(self, all_tokens, max_seq_len):
-    self.all_tokens = all_tokens
+  def __init__(self, processed_file_path, max_seq_len):
+    self.all_tokens = np.memmap(processed_file_path, dtype=np.uint16, mode='r')
     self.max_seq_len = max_seq_len
   
   def __len__(self):
@@ -18,7 +23,13 @@ class StoryDataset(torch.utils.data.Dataset):
 
   def __getitem__(self, index):
     sentance = self.all_tokens[index : index + self.max_seq_len + 1]
-    return sentance[:self.max_seq_len], sentance[1:]
+    x = sentance[:self.max_seq_len]
+    y = sentance[1:]
+
+    x_tensor = torch.tensor(x.astype(np.int64), dtype=torch.long)
+    y_tensor = torch.tensor(y.astype(np.int64), dtype=torch.long)
+
+    return x_tensor, y_tensor 
 
 def prepare_data():
   dataset = cast(
@@ -26,18 +37,33 @@ def prepare_data():
       load_dataset("roneneldan/TinyStories", split="train", cache_dir=CACHE_DIR),
   )
   encoder = tiktoken.get_encoding("gpt2")
-  all_tokens = []
+  batch_tokens = []
 
-  for article in dataset:
-    row = cast(dict[str, Any], article)
-    tokens = encoder.encode(row["text"])
-    all_tokens.extend(tokens)
-  
-  return all_tokens
+
+  with open(PROCESSED_FILE_PATH, 'wb') as f:
+    for i, article in enumerate(tqdm(dataset, total=len(dataset), desc="Tokenizing")):
+      row = cast(dict[str, Any], article)
+      tokens = encoder.encode(row["text"])
+      batch_tokens.extend(tokens)
+
+      if (i + 1) % 10000 == 0:
+        batch_array = np.array(batch_tokens, dtype=np.uint16)
+        batch_array.tofile(f)
+        batch_tokens=[]
+
+    if len(batch_tokens) > 0:
+        batch_array = np.array(batch_tokens, dtype=np.uint16)
+        batch_array.tofile(f)
+        batch_tokens=[]
+
+  print("Done")
+
 
 if __name__ == "__main__":
-  tokens = prepare_data()
-  my_dataset = StoryDataset(all_tokens=tokens, max_seq_len=MAX_SEQ_LEN)
+  prepare_data()
+  memmap_test = np.memmap(PROCESSED_FILE_PATH, dtype=np.uint16, mode='r')
+  print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
+  my_dataset = StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_seq_len=MAX_SEQ_LEN)
 
   dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=True)
 
