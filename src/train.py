@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import torch
 import numpy as np
+import tqdm
  
 load_dotenv()
 
@@ -45,7 +46,8 @@ my_dataset = dataset.StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_s
 dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
 
 for epoch in range(num_epochs):
-  for x, y in dataloader:
+  print(f"Epoch: {epoch} / {num_epochs}")
+  for i, (x, y) in enumerate(dataloader):
     x = x.to(device)
     y = y.to(device)
 
@@ -54,3 +56,15 @@ for epoch in range(num_epochs):
     y = y.reshape(-1)
 
     loss = loss_func(logits, y)
+    
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if (i + 1) % 100 == 0:
+      print(f"Score {i} / {len(dataloader)}: {loss.item()}")
+
+print("Training finished. Saving weights...")
+torch.save(gpt_model.state_dict(), "gpt_model.pth")
+print("Done")
+  
