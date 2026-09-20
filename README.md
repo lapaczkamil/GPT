@@ -1,0 +1,1 @@
+![GPT Architecture diagram](https://media.geeksforgeeks.org/wp-content/uploads/20260324090208535998/Decoder-only.webp)
