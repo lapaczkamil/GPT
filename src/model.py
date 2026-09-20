@@ -32,6 +32,11 @@ class GPT(nn.Module):
     self.position_embedding = nn.Embedding(max_seq_len, embedding_dim)
     self.lm_head = nn.Linear(embedding_dim, vocab_size)
     self.attention = MaskedSelfAttention(embedding_dim)
+    self.layer_norm = nn.LayerNorm(embedding_dim)
+    self.ffn_linear = nn.Linear(embedding_dim, 4 * embedding_dim)
+    self.ffn_gelu = nn.GELU()
+    self.ffn_linear_comp = nn.Linear(4 * embedding_dim, embedding_dim)
+    self.ffn = nn.Sequential(nn.Linear(embedding_dim, 4 * embedding_dim), nn.GELU(), nn.Linear(4 * embedding_dim, embedding_dim))
 
   def forward(self, idx):
     print(idx.shape)
@@ -43,11 +48,12 @@ class GPT(nn.Module):
     print(f"lm_head: {self.lm_head}")
 
     x = tok_emb + pos_emb
-    x_attention = self.attention(x)
-    x += x_attention # residual connection
 
-    x = self.lm_head(x)
+    x += self.attention(self.layer_norm(x)) # residual connection
 
+    x += self.ffn(self.layer_norm(x))
 
+    x = 
+    x = self.lm_head(self.layer_norm(x))
 
     return x
