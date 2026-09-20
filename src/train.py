@@ -12,6 +12,10 @@ vocab_size = int(os.getenv("VOCAB_SIZE", "50257"))
 embedding_dim = int(os.getenv("EMBEDDING_DIM", "64"))
 max_seq_len = int(os.getenv("MAX_SEQ_LEN", "256"))
 
+
+CHECKPOINT_DIR = "checkpoints"
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
 CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
 PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, "tinystories_tokens.bin")
 
@@ -62,7 +66,21 @@ for epoch in range(num_epochs):
     optimizer.step()
 
     if (i + 1) % 100 == 0:
-      print(f"Score {i} / {len(dataloader)}: {loss.item()}")
+      print(f"| {i} / {len(dataloader)} |  Loss: {loss.item()}")
+
+    if (i + 1) % 1000 == 0:
+      path = os.path.join(CHECKPOINT_DIR, f"gpt_step_{i+1}.pth")
+      torch.save(
+          {
+              "model": gpt_model.state_dict(),
+              "optimizer": optimizer.state_dict(),
+              "epoch": epoch,
+              "step": i + 1,
+              "loss": loss.item(),
+          },
+          path,
+      )
+      print(f"Saved {path}")
 
 print("Training finished. Saving weights...")
 torch.save(gpt_model.state_dict(), "gpt_model.pth")
