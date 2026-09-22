@@ -8,7 +8,7 @@ import tiktoken
 from config import TrainingConfig
 
 class Trainer:
-  def __init__(self, model, optimizer, loss_func, dataloader, device, num_epochs, tokenizer, checkpoint_dir):
+  def __init__(self, model, optimizer, loss_func, dataloader, device, num_epochs, tokenizer, checkpoint_dir, token_file):
     self.model = model
     self.optimizer = optimizer
     self.loss_func = loss_func
@@ -17,10 +17,11 @@ class Trainer:
     self.device = device
     self.tokenizer = tokenizer
     self.checkpoint_dir = checkpoint_dir
+    self.token_file = token_file
 
   def train(self):
     for epoch in range(self.num_epochs):
-      print(f"Epoch: {epoch} / {self.num_epochs}")
+      print(f"Epoch: {epoch + 1} / {self.num_epochs}")
       for i, (x, y) in enumerate(self.dataloader):
         x = x.to(self.device)
         y = y.to(self.device)
@@ -36,7 +37,7 @@ class Trainer:
         self.optimizer.step()
 
         if (i + 1) % 100 == 0:
-          print(f"| {i} / {len(self.dataloader)} |  Loss: {loss.item()}")
+          print(f"| {i + 1} / {len(self.dataloader)} |  Loss: {loss.item()}")
         
         if (i + 1) % 5000 == 0:
           self.generate_sample()
@@ -47,7 +48,7 @@ class Trainer:
     print("Done")
 
   def save_checkpoint(self, checkpoint_path, step, loss):
-    path = os.path.join(checkpoint_path, f"gpt_step_{step + 1}_pan_tedeusz.pth")
+    path = os.path.join(checkpoint_path, f"gpt_step_{step + 1}_{self.token_file.split('.')[0]}.pth")
     torch.save(
         {
             "model": self.model.state_dict(),
@@ -70,7 +71,7 @@ def main():
 
   os.makedirs(config.CHECKPOINT_DIR, exist_ok=True)
 
-  model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, block_num=config.block_num)
+  model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, layer_num=config.layer_num, dropout=config.dropout)
   optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
   loss_func = torch.nn.CrossEntropyLoss()
 
@@ -85,13 +86,13 @@ def main():
   model.to(device)
   
   if not os.path.exists(config.PROCESSED_FILE_PATH):
-    dataset.prepare_data()
+    dataset.prepare_data(config)
 
   memmap_test = np.memmap(config.PROCESSED_FILE_PATH, dtype=np.uint16, mode='r')
   print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
 
   my_dataset = dataset.StoryDataset(processed_file_path=config.PROCESSED_FILE_PATH, max_seq_len=config.max_seq_len)
-  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=config.batch_size, shuffle=True) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
+  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=config.batch_size, shuffle=True)
 
   trainer = Trainer(model=model, 
                     optimizer=optimizer, 
@@ -100,7 +101,9 @@ def main():
                     device=device, 
                     num_epochs=config.num_epochs, 
                     tokenizer=tiktoken.encoding_for_model("gpt2"), 
-                    checkpoint_dir=config.CHECKPOINT_DIR)
+                    checkpoint_dir=config.CHECKPOINT_DIR,
+                    token_file=config.token_file
+                    )
   trainer.train()
 
 

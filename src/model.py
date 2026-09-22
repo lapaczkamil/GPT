@@ -25,28 +25,30 @@ class MaskedSelfAttention(nn.Module):
     return out
 
 class TransformerBlock(nn.Module):
-  def __init__(self, embedding_dim):
+  def __init__(self, embedding_dim, dropout=0.1):
     super().__init__()
     self.attention = MaskedSelfAttention(embedding_dim)
     self.ln_1 = nn.LayerNorm(embedding_dim)
     self.ln_2 = nn.LayerNorm(embedding_dim)
     self.ffn = nn.Sequential(nn.Linear(embedding_dim, 4 * embedding_dim), nn.GELU(), nn.Linear(4 * embedding_dim, embedding_dim))
+    self.dropout = nn.Dropout(dropout)
 
   def forward(self, x):
-    x = x + self.attention(self.ln_1(x))
-    x = x + self.ffn(self.ln_2(x))
+    x = x + self.dropout(self.attention(self.ln_1(x)))
+    x = x + self.dropout(self.ffn(self.ln_2(x)))
     
     return x
 
 class GPT(nn.Module):
-  def __init__(self, vocab_size, embedding_dim, max_seq_len, block_num):
+  def __init__(self, vocab_size, embedding_dim, max_seq_len, layer_num, dropout=0.1):
     super().__init__()
     self.token_embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
     self.position_embedding = nn.Embedding(max_seq_len, embedding_dim)
     self.lm_head = nn.Linear(embedding_dim, vocab_size)
     self.final_ln = nn.LayerNorm(embedding_dim)
-    self.blocks = nn.Sequential(*[TransformerBlock(embedding_dim) for _ in range(block_num)])
+    self.blocks = nn.Sequential(*[TransformerBlock(embedding_dim) for _ in range(layer_num)])
     self.max_seq_len = max_seq_len
+    self.drop = nn.Dropout(dropout)
 
   def forward(self, idx):
     B, T = idx.shape
@@ -55,7 +57,7 @@ class GPT(nn.Module):
     pos = torch.arange(0, T, device=idx.device)
     pos_emb = self.position_embedding(pos) # (T, embedding_dim)
 
-    x = tok_emb + pos_emb
+    x = self.drop(tok_emb + pos_emb)
     x = self.blocks(x)
     x = self.lm_head(self.final_ln(x))
 

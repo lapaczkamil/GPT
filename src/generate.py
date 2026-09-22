@@ -3,23 +3,21 @@ from model import GPT
 from dotenv import load_dotenv
 import os
 import tiktoken
+from config import Config
 
-load_dotenv()
+config = Config()
 
-CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints/")
+model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, layer_num=config.layer_num, dropout=config.dropout)
 
-embedding_dim = int(os.getenv("EMBEDDING_DIM", "768"))
-max_seq_len = int(os.getenv("MAX_SEQ_LEN", "1024"))
-num_embeddings = int(os.getenv("VOCAB_SIZE", "50257"))
-block_num = int(os.getenv("BLOCK_NUM", "6"))
+ckpt = torch.load("gpt_model.pth", map_location='cpu', weights_only=False)
+model.load_state_dict(ckpt)
 
-model = GPT(vocab_size=num_embeddings, embedding_dim=embedding_dim, max_seq_len=max_seq_len, block_num=block_num)
+text = "My favorite animal is"
+tokenizer = tiktoken.encoding_for_model("gpt2")
 
-ckpt = torch.load(os.path.join(CHECKPOINTS_DIR, 'gpt_step_20000_pan_tedeusz.pth'), map_location='cpu', weights_only=False)
-model.load_state_dict(ckpt["model"])
+token_ids = tokenizer.encode(text)
+tensor = torch.tensor([token_ids], dtype=torch.long)
+out = model.generate(idx=tensor, max_new_tokens=100)
 
-out = model.generate(idx=torch.zeros(1, 1, dtype=torch.long), max_new_tokens=100)
 
-encoding = tiktoken.encoding_for_model("gpt2")
-
-print(encoding.decode(out[0].tolist()))
+print(tokenizer.decode(out[0].tolist()))
