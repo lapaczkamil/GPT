@@ -11,7 +11,7 @@ load_dotenv()
 
 CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
 MAX_SEQ_LEN = int(os.getenv("MAX_SEQ_LEN", "256"))
-PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, "tinystories_tokens.bin")
+PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, "pan_tadeusz.bin")
 
 class StoryDataset(torch.utils.data.Dataset):
   def __init__(self, processed_file_path, max_seq_len):
@@ -32,9 +32,11 @@ class StoryDataset(torch.utils.data.Dataset):
     return x_tensor, y_tensor 
 
 def prepare_data():
-  dataset = cast(
-      Dataset,
-      load_dataset("roneneldan/TinyStories", split="train", cache_dir=CACHE_DIR),
+  dataset = load_dataset(
+      "text",
+      data_files="data/raw/pan-tadeusz.txt",
+      split="train",
+      cache_dir=CACHE_DIR,
   )
   encoder = tiktoken.get_encoding("gpt2")
   batch_tokens = []

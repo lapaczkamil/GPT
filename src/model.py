@@ -39,14 +39,14 @@ class TransformerBlock(nn.Module):
     return x
 
 class GPT(nn.Module):
-  def __init__(self, vocab_size, embedding_dim, max_seq_len):
+  def __init__(self, vocab_size, embedding_dim, max_seq_len, block_num):
     super().__init__()
     self.token_embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
     self.position_embedding = nn.Embedding(max_seq_len, embedding_dim)
     self.lm_head = nn.Linear(embedding_dim, vocab_size)
     self.final_ln = nn.LayerNorm(embedding_dim)
-    self.blocks = nn.Sequential(*[TransformerBlock(embedding_dim) for _ in range(4)])
-
+    self.blocks = nn.Sequential(*[TransformerBlock(embedding_dim) for _ in range(block_num)])
+    self.max_seq_len = max_seq_len
 
   def forward(self, idx):
     B, T = idx.shape
@@ -60,3 +60,17 @@ class GPT(nn.Module):
     x = self.lm_head(self.final_ln(x))
 
     return x
+
+  def generate(self, idx, max_new_tokens):
+    for _ in range(max_new_tokens):
+      idx_cond = idx[:, -self.max_seq_len:]
+      logits = self(idx_cond)
+      logits = logits[:,-1,:]
+      probs = torch.softmax(logits, dim=1)
+      idx_next = torch.multinomial(probs, num_samples=1)
+
+      idx = torch.cat((idx, idx_next), dim=1)
+    
+    return idx
+  
+

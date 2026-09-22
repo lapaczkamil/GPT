@@ -11,19 +11,22 @@ load_dotenv()
 vocab_size = int(os.getenv("VOCAB_SIZE", "50257"))
 embedding_dim = int(os.getenv("EMBEDDING_DIM", "64"))
 max_seq_len = int(os.getenv("MAX_SEQ_LEN", "256"))
+block_num = int(os.getenv("BLOCK_NUM", "6"))
 
 
-CHECKPOINT_DIR = "checkpoints"
+token_file = str(os.getenv("TOKEN_FILE"))
+CHECKPOINT_DIR = str(os.getenv("CHECKPOINT_DIR"))
+
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
-PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, "tinystories_tokens.bin")
+PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, token_file)
 
-gpt_model = GPT(vocab_size=vocab_size, embedding_dim=embedding_dim, max_seq_len=max_seq_len)
+gpt_model = GPT(vocab_size=vocab_size, embedding_dim=embedding_dim, max_seq_len=max_seq_len, block_num=block_num)
 
-learning_rate = 1e-4
-weight_decay = 1e-2
-num_epochs = 10
+learning_rate = 3e-4
+weight_decay = 0.1
+num_epochs = 1
 
 optimizer = torch.optim.AdamW(gpt_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 loss_func = torch.nn.CrossEntropyLoss()
@@ -47,7 +50,7 @@ print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów."
 
 my_dataset = dataset.StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_seq_len=max_seq_len)
 
-dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
+dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=6, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
 
 for epoch in range(num_epochs):
   print(f"Epoch: {epoch} / {num_epochs}")
@@ -68,8 +71,8 @@ for epoch in range(num_epochs):
     if (i + 1) % 100 == 0:
       print(f"| {i} / {len(dataloader)} |  Loss: {loss.item()}")
 
-    if (i + 1) % 1000 == 0:
-      path = os.path.join(CHECKPOINT_DIR, f"gpt_step_{i+1}.pth")
+    if (i + 1) % 5000 == 0:
+      path = os.path.join(CHECKPOINT_DIR, f"gpt_step_{i+1}_pan_tedeusz.pth")
       torch.save(
           {
               "model": gpt_model.state_dict(),
