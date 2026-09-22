@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import torch
 import numpy as np
+import tiktoken
 import tqdm
  
 load_dotenv()
@@ -12,80 +13,105 @@ vocab_size = int(os.getenv("VOCAB_SIZE", "50257"))
 embedding_dim = int(os.getenv("EMBEDDING_DIM", "64"))
 max_seq_len = int(os.getenv("MAX_SEQ_LEN", "256"))
 block_num = int(os.getenv("BLOCK_NUM", "6"))
-
-
-token_file = str(os.getenv("TOKEN_FILE"))
 CHECKPOINT_DIR = str(os.getenv("CHECKPOINT_DIR"))
 
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+class Trainer:
+  def __init__(self, model, optimizer, loss_func, dataloader, device, num_epochs, tokenizer):
+    self.model = model
+    self.optimizer = optimizer
+    self.loss_func = loss_func
+    self.dataloader = dataloader
+    self.num_epochs = num_epochs
+    self.device = device
+    self.tokenizer = tokenizer
 
-CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
-PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, token_file)
+  def train(self):
+    for epoch in range(self.num_epochs):
+      print(f"Epoch: {epoch} / {self.num_epochs}")
+      for i, (x, y) in enumerate(self.dataloader):
+        x = x.to(self.device)
+        y = y.to(self.device)
 
-gpt_model = GPT(vocab_size=vocab_size, embedding_dim=embedding_dim, max_seq_len=max_seq_len, block_num=block_num)
+        logits = self.model(x)
+        logits = logits.reshape(-1, logits.shape[2])
+        y = y.reshape(-1)
 
-learning_rate = 3e-4
-weight_decay = 0.1
-num_epochs = 1
+        loss = self.loss_func(logits, y)
+        
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-optimizer = torch.optim.AdamW(gpt_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-loss_func = torch.nn.CrossEntropyLoss()
+        if (i + 1) % 100 == 0:
+          print(f"| {i} / {len(self.dataloader)} |  Loss: {loss.item()}")
+        
+        if (i + 1) % 5000 == 0:
+          self.generate_sample()
+          self.save_checkpoint(CHECKPOINT_DIR, i, loss)
 
-if torch.cuda.is_available():
-  device = 'cuda'
-elif torch.backends.mps.is_available():
-  device = 'mps'
-else:
-  device = 'cpu'
+    print("Training finished. Saving weights...")
+    torch.save(self.model.state_dict(), "gpt_model.pth")
+    print("Done")
 
-print(f'Training using: {device}')
+  def save_checkpoint(self, checkpoint_path, step, loss):
+    path = os.path.join(checkpoint_path, f"gpt_step_{step + 1}_pan_tedeusz.pth")
+    torch.save(
+        {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "step": step + 1,
+            "loss": loss.item(),
+        },
+        path,
+    )
+    print(f"Saved {path}")
 
-gpt_model.to(device)
+  def generate_sample(self):
+    tensor = torch.zeros(1,1, dtype=torch.long).to(self.device)
+    logits = self.model.generate(idx=tensor, max_new_tokens=1024)
+    text = self.tokenizer.decode(logits[0].tolist())
+    print(text)
 
-if not os.path.exists(PROCESSED_FILE_PATH):
-  dataset.prepare_data()
+token_file = str(os.getenv("TOKEN_FILE"))
 
-memmap_test = np.memmap(PROCESSED_FILE_PATH, dtype=np.uint16, mode='r')
-print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
 
-my_dataset = dataset.StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_seq_len=max_seq_len)
+if __name__ == "__main__":
+  os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=6, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
+  CACHE_DIR = os.getenv("CACHE_DIR", "./data/raw")
+  PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, token_file)
 
-for epoch in range(num_epochs):
-  print(f"Epoch: {epoch} / {num_epochs}")
-  for i, (x, y) in enumerate(dataloader):
-    x = x.to(device)
-    y = y.to(device)
+  learning_rate = 3e-4
+  weight_decay = 0.1
+  num_epochs = 1
 
-    logits = gpt_model(x)
-    logits = logits.reshape(-1, logits.shape[2])
-    y = y.reshape(-1)
+  model = GPT(vocab_size=vocab_size, embedding_dim=embedding_dim, max_seq_len=max_seq_len, block_num=block_num)
+  optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+  loss_func = torch.nn.CrossEntropyLoss()
 
-    loss = loss_func(logits, y)
-    
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+  if torch.cuda.is_available():
+    device = 'cuda'
+  elif torch.backends.mps.is_available():
+    device = 'mps'
+  else:
+    device = 'cpu'
 
-    if (i + 1) % 100 == 0:
-      print(f"| {i} / {len(dataloader)} |  Loss: {loss.item()}")
-
-    if (i + 1) % 5000 == 0:
-      path = os.path.join(CHECKPOINT_DIR, f"gpt_step_{i+1}_pan_tedeusz.pth")
-      torch.save(
-          {
-              "model": gpt_model.state_dict(),
-              "optimizer": optimizer.state_dict(),
-              "epoch": epoch,
-              "step": i + 1,
-              "loss": loss.item(),
-          },
-          path,
-      )
-      print(f"Saved {path}")
-
-print("Training finished. Saving weights...")
-torch.save(gpt_model.state_dict(), "gpt_model.pth")
-print("Done")
+  print(f'Training using: {device}')
+  model.to(device)
   
+  if not os.path.exists(PROCESSED_FILE_PATH):
+    dataset.prepare_data()
+
+  memmap_test = np.memmap(PROCESSED_FILE_PATH, dtype=np.uint16, mode='r')
+  print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
+
+  my_dataset = dataset.StoryDataset(processed_file_path=PROCESSED_FILE_PATH, max_seq_len=max_seq_len)
+
+  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=6, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
+
+  trainer = Trainer(model=model, optimizer=optimizer, loss_func=loss_func, dataloader=dataloader, device=device, num_epochs=num_epochs, tokenizer=tiktoken.encoding_for_model("gpt2"))
+
+  trainer.train()
+
+
+
