@@ -91,7 +91,7 @@ def main():
   print(f"Test wczytania: plik widziany z dysku ma {len(memmap_test):,} tokenów.")
 
   my_dataset = dataset.StoryDataset(processed_file_path=config.PROCESSED_FILE_PATH, max_seq_len=config.max_seq_len)
-  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=config.batch_size, shuffle=False) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
+  dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=config.batch_size, shuffle=True) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
 
   trainer = Trainer(model=model, 
                     optimizer=optimizer, 
