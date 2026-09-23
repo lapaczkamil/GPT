@@ -15,8 +15,12 @@ class Config:
   CACHE_DIR: str = os.getenv("CACHE_DIR", "./data/processed")
   token_file = str(os.getenv("TOKEN_FILE"))
   PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, token_file)
-  MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "1_000_000"))
 
+
+@dataclass
+class DatasetConfig(Config):
+  dataset: str = str(os.getenv("DATASET"))
+  MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "1_000_000"))
 
 @dataclass
 class TrainingConfig(Config):

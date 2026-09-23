@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 from tqdm import tqdm
 import numpy as np
-from config import Config
+from config import DatasetConfig
 
 
 
@@ -32,7 +32,7 @@ class StoryDataset(torch.utils.data.Dataset):
 
 def prepare_data(config):
   dataset = load_dataset(
-      "roneneldan/TinyStories",
+      config.dataset,
       split="train",
       cache_dir=config.CACHE_DIR,
   )
@@ -69,7 +69,7 @@ def prepare_data(config):
 
 
 def main():
-  config = Config()
+  config = DatasetConfig()
 
   if not os.path.exists(config.PROCESSED_FILE_PATH):
     prepare_data(config)
