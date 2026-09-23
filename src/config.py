@@ -15,6 +15,7 @@ class Config:
   CACHE_DIR: str = os.getenv("CACHE_DIR", "./data/processed")
   token_file = str(os.getenv("TOKEN_FILE"))
   PROCESSED_FILE_PATH = os.path.join(CACHE_DIR, token_file)
+  num_heads: int = int(os.getenv("NUM_HEADS", "8"))
 
 
 @dataclass
