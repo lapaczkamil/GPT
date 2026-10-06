@@ -71,7 +71,7 @@ def main():
 
   os.makedirs(config.CHECKPOINT_DIR, exist_ok=True)
 
-  model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, layer_num=config.layer_num, dropout=config.dropout)
+  model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, layer_num=config.layer_num, dropout=config.dropout, num_heads=config.num_heads)
   optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
   loss_func = torch.nn.CrossEntropyLoss()
 

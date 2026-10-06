@@ -21,6 +21,7 @@ class Config:
 @dataclass
 class DatasetConfig(Config):
   dataset: str = str(os.getenv("DATASET"))
+  dataset_sft: str = str(os.getenv("DATASET_SFT"))
   MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "1_000_000"))
 
 @dataclass

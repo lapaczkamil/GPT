@@ -83,7 +83,7 @@ class GPT(nn.Module):
     self.drop = nn.Dropout(dropout)
 
   def forward(self, idx):
-    B, T = idx.shape
+    batch, T = idx.shape
 
     tok_emb = self.token_embedding(idx) # (B, T, embedding_dim)
     pos = torch.arange(0, T, device=idx.device)
