@@ -24,7 +24,9 @@ class StorySftDataset(torch.utils.data.Dataset):
     query = "[QUERY]" + str(row['query'])
     answer = "[ANSWER]" + str(row['answer'])
 
-
+    query_encoded = self.encoder.encode(query)
+    query_len = len(query_encoded)
+    
     ids = self.encoder.encode(query + answer)
     ids = ids[: self.max_seq_len + 1]
 
@@ -34,7 +36,8 @@ class StorySftDataset(torch.utils.data.Dataset):
 
     x = torch.tensor(ids[:-1], dtype=torch.long)
     y = torch.tensor(ids[1:], dtype=torch.long)
-
+  
+    y[:query_len - 1] = -100
     y[y == pad_id] = -100
 
     return x, y
@@ -47,7 +50,6 @@ def main():
   encoder = tiktoken.get_encoding("gpt2")
 
   my_dataset = StorySftDataset(config.dataset_sft, encoder, config.max_seq_len)
-  
 
   dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=4, shuffle=True) # Do zoptymalizowania w przyszlosci zeby bylo shuffle=True
 

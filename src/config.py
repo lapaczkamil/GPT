@@ -30,4 +30,5 @@ class TrainingConfig(Config):
   learning_rate: float = float(os.getenv("LEARNING_RATE", "3e-4"))
   weight_decay: float = float(os.getenv("WEIGHT_DECAY", "0.1"))
   num_epochs: int = int(os.getenv("NUM_EPOCHS", "1"))
+  dataset_sft: str = str(os.getenv("DATASET_SFT"))
 
