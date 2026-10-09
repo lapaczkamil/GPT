@@ -15,7 +15,7 @@ model.load_state_dict(ckpt)
 model.to(device)
 model.eval()
 
-prompt = "[QUERY] Make a story about cats. [ANSWER] "
+prompt = "[QUERY] Write a story about a shy elephant. [ANSWER] "
 tokenizer = tiktoken.encoding_for_model("gpt2")
 
 token_ids = tokenizer.encode(prompt)

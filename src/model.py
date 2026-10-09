@@ -119,8 +119,9 @@ class GPT(nn.Module):
 
     return logits, new_caches
 
-  def generate(self, idx, max_new_tokens):
+  def generate(self, idx, max_new_tokens, use_kv_cache=True):
     # prefill
+
     logits, caches = self(idx, kv_caches=None)
     probs = torch.softmax(logits[:, -1, :], dim=-1)
     idx_next = torch.multinomial(probs, 1)
@@ -128,7 +129,11 @@ class GPT(nn.Module):
 
     # decode
     for _ in range(max_new_tokens - 1):
-      logits, caches = self(idx_next, kv_caches=caches)
+      if use_kv_cache is True:
+        logits, caches = self(idx_next, kv_caches=caches)
+      else:
+        logits, _ = self(idx_next)
+        
       probs = torch.softmax(logits[:, -1, :], dim=-1)
       idx_next = torch.multinomial(probs, num_samples=1)
       idx = torch.cat((idx, idx_next), dim=1)
