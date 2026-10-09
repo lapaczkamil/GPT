@@ -26,7 +26,7 @@ class Trainer:
         x = x.to(self.device)
         y = y.to(self.device)
 
-        logits = self.model(x)
+        logits, _ = self.model(x)
         logits = logits.reshape(-1, logits.shape[2])
         y = y.reshape(-1)
 
@@ -44,7 +44,7 @@ class Trainer:
           self.save_checkpoint(self.checkpoint_dir, i, loss)
 
     print("Training finished. Saving weights...")
-    torch.save(self.model.state_dict(), "gpt_model.pth")
+    torch.save(self.model.state_dict(), "gpt_model_sft.pth")
     print("Done")
 
   def save_checkpoint(self, checkpoint_path, step, loss):
@@ -61,10 +61,16 @@ class Trainer:
     print(f"Saved {path}")
 
   def generate_sample(self):
-    tensor = torch.zeros(1,1, dtype=torch.long).to(self.device)
-    logits = self.model.generate(idx=tensor, max_new_tokens=1024)
-    text = self.tokenizer.decode(logits[0].tolist())
-    print(text)
+    self.model.eval()
+    prompt = "[QUERY] Write a short story about a cat. [ANSWER] "
+    ids = self.tokenizer.encode(prompt)
+    idx = torch.tensor([ids], dtype=torch.long, device=self.device)
+
+    with torch.no_grad():
+      out = self.model.generate(idx, max_new_tokens=100)
+
+    print(self.tokenizer.decode(out[0].tolist()))
+    self.model.train()
 
 def main():
   config = TrainingConfig()
@@ -73,7 +79,7 @@ def main():
 
   model = GPT(vocab_size=config.vocab_size, embedding_dim=config.embedding_dim, max_seq_len=config.max_seq_len, layer_num=config.layer_num, dropout=config.dropout, num_heads=config.num_heads)
   optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
-  loss_func = torch.nn.CrossEntropyLoss()
+  loss_func = torch.nn.CrossEntropyLoss(ignore_index=-100)
   encoder = tiktoken.get_encoding("gpt2")
 
   if torch.cuda.is_available():

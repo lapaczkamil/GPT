@@ -21,8 +21,8 @@ class StorySftDataset(torch.utils.data.Dataset):
 
   def __getitem__(self, index):
     row = self.data[index]
-    query = "[QUERY]" + str(row['query'])
-    answer = "[ANSWER]" + str(row['answer'])
+    query = "[QUERY] " + str(row['query'])
+    answer = "[ANSWER] " + str(row['answer'])
 
     query_encoded = self.encoder.encode(query)
     query_len = len(query_encoded)
