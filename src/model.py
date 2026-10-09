@@ -123,8 +123,7 @@ class GPT(nn.Module):
     # prefill
 
     logits, caches = self(idx, kv_caches=None)
-    probs = torch.softmax(logits[:, -1, :], dim=-1)
-    idx_next = torch.multinomial(probs, 1)
+    idx_next = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
     idx = torch.cat([idx, idx_next], dim=1)
 
     # decode
@@ -132,10 +131,10 @@ class GPT(nn.Module):
       if use_kv_cache is True:
         logits, caches = self(idx_next, kv_caches=caches)
       else:
-        logits, _ = self(idx_next)
-        
+        logits, _ = self(idx[:, -self.max_seq_len:], kv_caches=None)
+
       probs = torch.softmax(logits[:, -1, :], dim=-1)
-      idx_next = torch.multinomial(probs, num_samples=1)
+      idx_next = torch.argmax(probs, dim=-1, keepdim=True)
       idx = torch.cat((idx, idx_next), dim=1)
 
     return idx

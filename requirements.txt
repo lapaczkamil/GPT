@@ -4,3 +4,4 @@ numpy
 tqdm
 datasets
 python-dotenv
+pytest

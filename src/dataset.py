@@ -8,8 +8,6 @@ from tqdm import tqdm
 import numpy as np
 from config import DatasetConfig
 
-
-
 class StoryDataset(torch.utils.data.Dataset):
   def __init__(self, processed_file_path, max_seq_len):
     self.all_tokens = np.memmap(processed_file_path, dtype=np.uint16, mode='r')
