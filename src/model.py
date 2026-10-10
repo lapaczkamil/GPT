@@ -56,10 +56,14 @@ class MultiHeadAttention(nn.Module):
 
     # (batch_size, num_heads, seq_len, head_dim) @ (batch_size, num_heads, head_dim, seq_len)
     attention_scores = (q @ k.transpose(2, 3)) / head_dim ** 0.5 
-
-    if seq_len > 1 and :
-      causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=idx.device))
-      attention_scores = attention_scores.masked_fill(causal_mask == 0, -float('inf')) # Not needed with KV-cache
+    
+    past_len = 0 if kv_cache is None else kv_cache["k"].size(2)
+    if seq_len > 1:
+      mask = torch.tril(
+          torch.ones(seq_len, past_len + seq_len, device=idx.device, dtype=torch.bool),
+          diagonal=past_len,
+      )
+      attention_scores = attention_scores.masked_fill(~mask, float("-inf"))
 
     attention_scores = torch.softmax(attention_scores, dim=-1)
     attention_scores = self.attention_dropout(attention_scores)
