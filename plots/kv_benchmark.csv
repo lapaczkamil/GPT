@@ -1,0 +1,9 @@
+max_new_tokens,method,seconds,tok_s
+64,naive,0.2857,224.0
+64,kv_cache,0.2072,308.9
+128,naive,0.4877,262.47
+128,kv_cache,0.4043,316.56
+256,naive,1.1156,229.47
+256,kv_cache,0.8799,290.93
+498,naive,2.4002,207.48
+498,kv_cache,1.692,294.33

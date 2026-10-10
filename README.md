@@ -12,9 +12,12 @@ Small Generative Pre-trained Transformer (GPT) in PyTorch
 | `src/dataset.py` | Text tokenization (tiktoken GPT-2) → `.bin` file, memmap-backed dataset |
 | `src/train.py` | Training loop, checkpoints, generation samples |
 | `src/generate.py` | Load a checkpoint and generate text |
+| `src/benchmark.py` | Naive vs KV-cache generate timing |
+| `src/plot_kv_benchmark.py` | Benchmark + PNG/CSV charts |
 | `src/config.py` | Configuration from `.env` |
 | `data/raw/` | Raw text and tokenized `.bin` files |
 | `checkpoints/` | Saved weights |
+| `plots/` | KV-cache benchmark figures |
 
 ## Setup
 
@@ -58,6 +61,37 @@ cd src && python3 generate.py
 ```
 
 Training checkpoints are saved as a dict - load weights with `ckpt["model"]`.
+
+## KV-cache benchmark
+
+Decoder generation with and without KV-cache (`use_kv_cache=True/False`). Regenerate plots:
+
+```bash
+python3 src/plot_kv_benchmark.py
+```
+
+Outputs land in `plots/` (`*.png`, `kv_benchmark.csv`).
+
+Example results (CUDA, SFT checkpoint):
+
+| max_new_tokens | naive tok/s | KV-cache tok/s | speedup |
+|----------------|-------------|----------------|---------|
+| 64 | 224 | 309 | 1.38× |
+| 128 | 262 | 317 | 1.21× |
+| 256 | 229 | 291 | 1.27× |
+| 498 | 207 | 294 | 1.42× |
+
+### Throughput
+
+![KV-cache vs naive tokens/s](plots/kv_benchmark_tok_s.png)
+
+### Latency
+
+![KV-cache vs naive latency](plots/kv_benchmark_latency.png)
+
+### Speedup
+
+![KV-cache speedup](plots/kv_benchmark_speedup.png)
 
 ## Notes
 
