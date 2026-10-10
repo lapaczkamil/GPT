@@ -54,14 +54,16 @@ class MultiHeadAttention(nn.Module):
     else:
       kv_cache = {"k": k, "v": v}
 
-    # (batch_size, num_heads, seq_len, head_dim) @ (batch_size, num_heads, head_dim, seq_len)
-    attention_scores = (q @ k.transpose(2, 3)) / head_dim ** 0.5 
+    # (batch_size, num_heads, q_len, head_dim) @ (..., head_dim, k_len) -> (..., q_len, k_len)
+    attention_scores = (q @ k.transpose(2, 3)) / head_dim ** 0.5
+
+    k_len = k.size(2)
+    past_len = k_len - seq_len
     
-    past_len = 0 if kv_cache is None else kv_cache["k"].size(2)
     if seq_len > 1:
       mask = torch.tril(
-          torch.ones(seq_len, past_len + seq_len, device=idx.device, dtype=torch.bool),
-          diagonal=past_len,
+        torch.ones(seq_len, k_len, device=idx.device, dtype=torch.bool),
+        diagonal=past_len,
       )
       attention_scores = attention_scores.masked_fill(~mask, float("-inf"))
 
