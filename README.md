@@ -85,13 +85,6 @@ Example results (CUDA, SFT checkpoint):
 
 ![KV-cache vs naive tokens/s](plots/kv_benchmark_tok_s.png)
 
-### Latency
-
-![KV-cache vs naive latency](plots/kv_benchmark_latency.png)
-
-### Speedup
-
-![KV-cache speedup](plots/kv_benchmark_speedup.png)
 
 ## Notes
 
